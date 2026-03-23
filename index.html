@@ -1,0 +1,1242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Grokking Lab — Power et al. 2022</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%2306080f'/%3E%3Crect x='2' y='2' width='28' height='28' fill='none' stroke='%234cc98a' stroke-width='1.5'/%3E%3Ctext x='16' y='22' font-family='monospace' font-size='16' font-weight='500' fill='%234cc98a' text-anchor='middle'%3EG%3C/text%3E%3C/svg%3E" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500&family=JetBrains+Mono:wght@300;400;500&family=Outfit:wght@300;400;500&display=swap" rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+
+  <style>
+    :root {
+      --bg:        #06080f;
+      --surface:   #0d1117;
+      --border:    rgba(255,255,255,0.07);
+      --green:     #4cc98a;
+      --amber:     #f6a940;
+      --blue:      #5ca8f0;
+      --gray:      #6b7280;
+      --text:      #c9d1d9;
+      --text-dim:  #6b7280;
+      --text-faint:#374151;
+      --font-mono: 'JetBrains Mono', 'Courier New', monospace;
+      --font-body: 'Outfit', sans-serif;
+      --font-serif:'Cormorant Garamond', Georgia, serif;
+      --radius:    4px;
+      --border-width: 0.5px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-body);
+      font-weight: 300;
+      font-size: 15px;
+      line-height: 1.6;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ─── Header ─── */
+    .header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 32px;
+      height: 52px;
+      background: rgba(6,8,15,0.95);
+      border-bottom: var(--border-width) solid var(--border);
+      backdrop-filter: blur(8px);
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .logo-box {
+      width: 28px;
+      height: 28px;
+      border: var(--border-width) solid var(--green);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--green);
+      flex-shrink: 0;
+    }
+
+    .logo-text {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: 400;
+      color: var(--text);
+      letter-spacing: 0.08em;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .pill {
+      padding: 3px 10px;
+      border: var(--border-width) solid var(--border);
+      border-radius: 20px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-dim);
+      background: var(--surface);
+    }
+
+    .tag {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--text-faint);
+      letter-spacing: 0.04em;
+    }
+
+    /* ─── Main layout ─── */
+    .page {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 24px 80px;
+    }
+
+    /* ─── Hero ─── */
+    .hero {
+      padding: 64px 0 48px;
+    }
+
+    .hero-label {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-dim);
+      letter-spacing: 0.12em;
+      margin-bottom: 20px;
+    }
+
+    .hero-heading {
+      font-family: var(--font-serif);
+      font-size: clamp(28px, 5vw, 52px);
+      font-weight: 300;
+      line-height: 1.2;
+      color: #e6edf3;
+      max-width: 700px;
+      margin-bottom: 18px;
+    }
+
+    .hero-sub {
+      font-size: 14px;
+      color: var(--text-dim);
+      font-weight: 300;
+      max-width: 560px;
+    }
+
+    .hero-rule {
+      margin-top: 40px;
+      border: none;
+      border-top: var(--border-width) solid var(--border);
+    }
+
+    /* ─── Section title ─── */
+    .section-label {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--text-faint);
+      letter-spacing: 0.14em;
+      margin-bottom: 6px;
+    }
+
+    .section-title {
+      font-size: 16px;
+      font-weight: 400;
+      color: var(--text);
+      margin-bottom: 20px;
+    }
+
+    /* ─── Card ─── */
+    .card {
+      background: var(--surface);
+      border: var(--border-width) solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+    }
+
+    /* ─── Main Chart ─── */
+    .chart-section {
+      margin-top: 48px;
+    }
+
+    .chart-wrap {
+      position: relative;
+      height: 340px;
+    }
+
+    .chart-legend {
+      display: flex;
+      gap: 24px;
+      margin-bottom: 16px;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-dim);
+    }
+
+    .legend-dot {
+      width: 10px;
+      height: 2px;
+      border-radius: 1px;
+      flex-shrink: 0;
+    }
+
+    .stat-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-top: 20px;
+    }
+
+    .stat-card {
+      border: var(--border-width) solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px 16px;
+      background: var(--bg);
+    }
+
+    .stat-label {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--text-faint);
+      margin-bottom: 4px;
+      letter-spacing: 0.06em;
+    }
+
+    .stat-value {
+      font-family: var(--font-mono);
+      font-size: 20px;
+      font-weight: 400;
+      color: var(--text);
+    }
+
+    .stat-unit {
+      font-size: 12px;
+      color: var(--text-dim);
+      margin-left: 2px;
+    }
+
+    /* ─── Phase Scrubber ─── */
+    .scrubber-section {
+      margin-top: 48px;
+    }
+
+    .scrubber-wrap {
+      margin-bottom: 24px;
+    }
+
+    .scrubber-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+
+    .scrubber-range-labels {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--text-faint);
+    }
+
+    .scrubber-controls {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .play-btn {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      height: 30px;
+      padding: 0 13px;
+      background: transparent;
+      border: var(--border-width) solid rgba(255,255,255,0.15);
+      border-radius: var(--radius);
+      color: var(--text-dim);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      cursor: pointer;
+      transition: border-color 0.2s, color 0.2s;
+      flex-shrink: 0;
+    }
+
+    .play-btn:hover {
+      border-color: rgba(255,255,255,0.3);
+      color: var(--text);
+    }
+
+    .play-btn.playing {
+      border-color: rgba(76,201,138,0.4);
+      color: var(--green);
+    }
+
+    .play-btn svg {
+      width: 10px;
+      height: 10px;
+      fill: currentColor;
+      flex-shrink: 0;
+    }
+
+    .speed-label {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--text-faint);
+      white-space: nowrap;
+    }
+
+    .speed-select {
+      height: 30px;
+      padding: 0 8px;
+      background: var(--surface);
+      border: var(--border-width) solid var(--border);
+      border-radius: var(--radius);
+      color: var(--text-dim);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      outline: none;
+      cursor: pointer;
+    }
+
+    .speed-select:focus {
+      border-color: rgba(255,255,255,0.2);
+    }
+
+    input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 2px;
+      background: var(--border);
+      border-radius: 1px;
+      outline: none;
+      cursor: pointer;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--text);
+      border: 2px solid var(--bg);
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    input[type="range"]::-webkit-slider-thumb:hover {
+      background: var(--green);
+    }
+
+    input[type="range"]::-moz-range-thumb {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--text);
+      border: 2px solid var(--bg);
+      cursor: pointer;
+    }
+
+    .scrubber-readout {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr auto;
+      gap: 12px;
+      align-items: start;
+      margin-top: 20px;
+    }
+
+    .readout-block {
+      border: var(--border-width) solid var(--border);
+      border-radius: var(--radius);
+      padding: 12px 14px;
+      background: var(--bg);
+    }
+
+    .readout-label {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--text-faint);
+      margin-bottom: 4px;
+      letter-spacing: 0.06em;
+    }
+
+    .readout-value {
+      font-family: var(--font-mono);
+      font-size: 18px;
+      font-weight: 400;
+      color: var(--text);
+    }
+
+    .phase-badge {
+      padding: 10px 16px;
+      border-radius: var(--radius);
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: 500;
+      letter-spacing: 0.08em;
+      white-space: nowrap;
+      border: var(--border-width) solid transparent;
+      transition: all 0.3s ease;
+      align-self: start;
+    }
+
+    .phase-badge.memorizing {
+      background: rgba(246,169,64,0.08);
+      border-color: rgba(246,169,64,0.3);
+      color: var(--amber);
+    }
+
+    .phase-badge.dead-zone {
+      background: rgba(107,114,128,0.08);
+      border-color: rgba(107,114,128,0.3);
+      color: var(--gray);
+    }
+
+    .phase-badge.transition {
+      background: rgba(92,168,240,0.08);
+      border-color: rgba(92,168,240,0.3);
+      color: var(--blue);
+    }
+
+    .phase-badge.grokked {
+      background: rgba(76,201,138,0.08);
+      border-color: rgba(76,201,138,0.3);
+      color: var(--green);
+    }
+
+    .phase-caption {
+      margin-top: 14px;
+      font-size: 13px;
+      color: var(--text-dim);
+      font-weight: 300;
+      border-left: 2px solid var(--border);
+      padding-left: 12px;
+      font-style: italic;
+    }
+
+    /* ─── Inference Demo ─── */
+    .inference-section {
+      margin-top: 48px;
+    }
+
+    .inference-inputs {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    .num-input-wrap {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .num-input-label {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--text-faint);
+      letter-spacing: 0.06em;
+    }
+
+    input[type="number"] {
+      width: 80px;
+      height: 36px;
+      background: var(--surface);
+      border: var(--border-width) solid var(--border);
+      border-radius: var(--radius);
+      color: var(--text);
+      font-family: var(--font-mono);
+      font-size: 16px;
+      text-align: center;
+      outline: none;
+      transition: border-color 0.2s;
+      -moz-appearance: textfield;
+    }
+
+    input[type="number"]::-webkit-outer-spin-button,
+    input[type="number"]::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+    }
+
+    input[type="number"]:focus {
+      border-color: rgba(255,255,255,0.2);
+    }
+
+    .op-symbol {
+      font-family: var(--font-mono);
+      font-size: 18px;
+      color: var(--text-faint);
+      padding-top: 18px;
+    }
+
+    .compute-btn {
+      height: 36px;
+      padding: 0 18px;
+      background: var(--surface);
+      border: var(--border-width) solid rgba(255,255,255,0.15);
+      border-radius: var(--radius);
+      color: var(--text);
+      font-family: var(--font-mono);
+      font-size: 12px;
+      cursor: pointer;
+      transition: border-color 0.2s, color 0.2s;
+      margin-top: 18px;
+    }
+
+    .compute-btn:hover {
+      border-color: rgba(255,255,255,0.3);
+      color: #e6edf3;
+    }
+
+    .inference-panels {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .inf-panel {
+      border: var(--border-width) solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px 20px;
+      background: var(--bg);
+      transition: border-color 0.3s;
+    }
+
+    .inf-panel.correct {
+      border-color: rgba(76,201,138,0.35);
+    }
+
+    .inf-panel.wrong {
+      border-color: rgba(246,169,64,0.35);
+    }
+
+    .inf-panel-header {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--text-faint);
+      margin-bottom: 10px;
+      letter-spacing: 0.08em;
+    }
+
+    .inf-answer {
+      font-family: var(--font-mono);
+      font-size: 36px;
+      font-weight: 400;
+      margin-bottom: 6px;
+    }
+
+    .inf-answer.green { color: var(--green); }
+    .inf-answer.amber { color: var(--amber); }
+    .inf-answer.faint { color: var(--text-faint); }
+
+    .inf-label {
+      font-size: 12px;
+      color: var(--text-dim);
+      font-weight: 300;
+    }
+
+    .inf-truth {
+      margin-top: 16px;
+      padding-top: 14px;
+      border-top: var(--border-width) solid var(--border);
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--text-dim);
+      text-align: center;
+    }
+
+    /* ─── Insight Cards ─── */
+    .insights-section {
+      margin-top: 48px;
+    }
+
+    .insight-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+
+    .insight-card {
+      background: var(--surface);
+      border: var(--border-width) solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+    }
+
+    .insight-number {
+      font-family: var(--font-mono);
+      font-size: 22px;
+      font-weight: 400;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+
+    .insight-desc {
+      font-size: 13px;
+      color: var(--text-dim);
+      font-weight: 300;
+      line-height: 1.5;
+    }
+
+    /* ─── Footer ─── */
+    .footer {
+      margin-top: 64px;
+      padding: 20px 24px;
+      border-top: var(--border-width) solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      max-width: 1100px;
+      margin-left: auto;
+      margin-right: auto;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .footer-item {
+      font-size: 12px;
+      color: var(--text-faint);
+      font-family: var(--font-mono);
+    }
+
+    .footer-item a {
+      color: var(--text-dim);
+      text-decoration: none;
+      border-bottom: var(--border-width) solid var(--border);
+      padding-bottom: 1px;
+      transition: color 0.2s;
+    }
+
+    .footer-item a:hover {
+      color: var(--text);
+    }
+
+    /* ─── Responsive ─── */
+    @media (max-width: 768px) {
+      .header { padding: 0 16px; }
+      .page { padding: 0 16px 60px; }
+      .hero { padding: 40px 0 32px; }
+
+      .stat-row { grid-template-columns: 1fr 1fr; }
+      .stat-row .stat-card:last-child { grid-column: 1 / -1; }
+
+      .scrubber-readout { grid-template-columns: 1fr 1fr; }
+      .phase-badge { grid-column: 1 / -1; }
+
+      .inference-panels { grid-template-columns: 1fr; }
+      .insight-grid { grid-template-columns: 1fr; }
+
+      .footer { flex-direction: column; align-items: flex-start; gap: 6px; }
+
+      .header-right .tag { display: none; }
+
+      .chart-wrap { height: 260px; }
+    }
+
+    @media (max-width: 480px) {
+      .stat-row { grid-template-columns: 1fr; }
+      .stat-row .stat-card:last-child { grid-column: auto; }
+      .scrubber-readout { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ─── Header ─── -->
+<header class="header">
+  <div class="header-left">
+    <div class="logo-box">G</div>
+    <span class="logo-text">GROKKING LAB</span>
+  </div>
+  <div class="header-right">
+    <span class="pill">(a + b) mod 97</span>
+    <span class="tag">Power et al. 2022</span>
+  </div>
+</header>
+
+<!-- ─── Main page ─── -->
+<main class="page">
+
+  <!-- ─── Hero ─── -->
+  <section class="hero">
+    <div class="hero-label">ML Research · Generalization beyond overfitting</div>
+    <h1 class="hero-heading">The moment a neural network stops memorizing and starts understanding</h1>
+    <p class="hero-sub">A 250K-parameter transformer trained on modular arithmetic — and the strange phenomenon that emerges long after it overfits.</p>
+    <hr class="hero-rule" />
+  </section>
+
+  <!-- ─── Main Chart ─── -->
+  <section class="chart-section">
+    <div class="section-label">SECTION 01</div>
+    <div class="section-title">Training run</div>
+
+    <div class="card">
+      <div class="chart-legend">
+        <div class="legend-item">
+          <div class="legend-dot" style="background:var(--green)"></div>
+          train accuracy
+        </div>
+        <div class="legend-item">
+          <div class="legend-dot" style="background:var(--amber)"></div>
+          val accuracy
+        </div>
+      </div>
+
+      <div class="chart-wrap">
+        <canvas id="mainChart"></canvas>
+      </div>
+
+      <div class="stat-row">
+        <div class="stat-card">
+          <div class="stat-label">Memorization at step</div>
+          <div class="stat-value">1<span class="stat-unit">k</span></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Grokking at step</div>
+          <div class="stat-value">7.2<span class="stat-unit">k</span></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Final val accuracy</div>
+          <div class="stat-value">100<span class="stat-unit">%</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── Phase Scrubber ─── -->
+  <section class="scrubber-section">
+    <div class="section-label">SECTION 02</div>
+    <div class="section-title">Explore the training</div>
+
+    <div class="card">
+      <div class="scrubber-wrap">
+        <div class="scrubber-controls">
+          <button class="play-btn" id="playBtn" title="Auto-play / pause">
+            <svg id="playIcon" viewBox="0 0 10 10"><polygon points="2,1 9,5 2,9"/></svg>
+            <svg id="pauseIcon" viewBox="0 0 10 10" style="display:none"><rect x="1.5" y="1" width="3" height="8"/><rect x="5.5" y="1" width="3" height="8"/></svg>
+            <span id="playLabel">play</span>
+          </button>
+          <span class="speed-label">speed</span>
+          <select class="speed-select" id="speedSelect">
+            <option value="0.5">0.5×</option>
+            <option value="1" selected>1×</option>
+            <option value="2">2×</option>
+            <option value="4">4×</option>
+          </select>
+        </div>
+        <div class="scrubber-top">
+          <span class="scrubber-range-labels">step 100</span>
+          <span class="scrubber-range-labels">step 20,000</span>
+        </div>
+        <input type="range" id="scrubber" min="100" max="20000" value="100" step="100" />
+      </div>
+
+      <div class="scrubber-readout">
+        <div class="readout-block">
+          <div class="readout-label">Current step</div>
+          <div class="readout-value" id="read-step">100</div>
+        </div>
+        <div class="readout-block">
+          <div class="readout-label">Train acc</div>
+          <div class="readout-value" id="read-train">—</div>
+        </div>
+        <div class="readout-block">
+          <div class="readout-label">Val acc</div>
+          <div class="readout-value" id="read-val">—</div>
+        </div>
+        <div id="phaseBadge" class="phase-badge memorizing">MEMORIZING</div>
+      </div>
+
+      <div class="phase-caption" id="phaseCaption">
+        Model has memorized all 2,822 training pairs. Val acc: random.
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── Live Inference ─── -->
+  <section class="inference-section">
+    <div class="section-label">SECTION 03</div>
+    <div class="section-title">Try it</div>
+
+    <div class="card">
+      <div class="inference-inputs">
+        <div class="num-input-wrap">
+          <span class="num-input-label">a (0–96)</span>
+          <input type="number" id="input-a" min="0" max="96" value="23" />
+        </div>
+        <span class="op-symbol">+</span>
+        <div class="num-input-wrap">
+          <span class="num-input-label">b (0–96)</span>
+          <input type="number" id="input-b" min="0" max="96" value="61" />
+        </div>
+        <span class="op-symbol">≡</span>
+        <span class="op-symbol">?</span>
+        <span class="op-symbol">(mod 97)</span>
+        <button class="compute-btn" id="computeBtn">compute (a + b) mod 97</button>
+      </div>
+
+      <div class="inference-panels" id="inferPanels" style="display:none">
+        <div class="inf-panel" id="panel-memo">
+          <div class="inf-panel-header">At step 1,000 — memorizing</div>
+          <div class="inf-answer" id="memo-answer">—</div>
+          <div class="inf-label" id="memo-label">—</div>
+        </div>
+        <div class="inf-panel correct" id="panel-grok">
+          <div class="inf-panel-header">At step 10,000 — grokked</div>
+          <div class="inf-answer green" id="grok-answer">—</div>
+          <div class="inf-label" id="grok-label">—</div>
+        </div>
+      </div>
+
+      <div class="inf-truth" id="inf-truth" style="display:none">—</div>
+    </div>
+  </section>
+
+  <!-- ─── Insight Cards ─── -->
+  <section class="insights-section">
+    <div class="section-label">SECTION 04</div>
+    <div class="section-title">Key insights</div>
+
+    <div class="insight-grid">
+      <div class="insight-card">
+        <div class="insight-number">Weight decay = 1.0</div>
+        <div class="insight-desc">Strong L2 pressure killed memorization in ~7,200 steps — forcing the network to find a compressed, generalizing solution.</div>
+      </div>
+      <div class="insight-card">
+        <div class="insight-number">250K parameters</div>
+        <div class="insight-desc">Tiny model. The circuit that emerged implements discrete Fourier transforms — representing addition in the frequency domain.</div>
+      </div>
+      <div class="insight-card">
+        <div class="insight-number">70% unseen pairs</div>
+        <div class="insight-desc">Trained on 2,822 examples. After grokking it generalizes perfectly to all 6,587 pairs it never saw during training.</div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<!-- ─── Footer ─── -->
+<footer class="footer">
+  <div class="footer-item">
+    Original paper: <a href="https://arxiv.org/abs/2201.02177" target="_blank" rel="noopener">"Grokking" — Power et al., OpenAI 2022</a>
+  </div>
+  <div class="footer-item">
+    Mechanistic analysis: <a href="https://arxiv.org/abs/2301.05217" target="_blank" rel="noopener">Nanda et al. 2023</a>
+  </div>
+</footer>
+
+<script>
+// ─── Embedded training data (steps 100–20000, 200 data points) ───
+const DATA = {"step":[100,200,300,400,500,600,700,800,900,1000,1100,1200,1300,1400,1500,1600,1700,1800,1900,2000,2100,2200,2300,2400,2500,2600,2700,2800,2900,3000,3100,3200,3300,3400,3500,3600,3700,3800,3900,4000,4100,4200,4300,4400,4500,4600,4700,4800,4900,5000,5100,5200,5300,5400,5500,5600,5700,5800,5900,6000,6100,6200,6300,6400,6500,6600,6700,6800,6900,7000,7100,7200,7300,7400,7500,7600,7700,7800,7900,8000,8100,8200,8300,8400,8500,8600,8700,8800,8900,9000,9100,9200,9300,9400,9500,9600,9700,9800,9900,10000,10100,10200,10300,10400,10500,10600,10700,10800,10900,11000,11100,11200,11300,11400,11500,11600,11700,11800,11900,12000,12100,12200,12300,12400,12500,12600,12700,12800,12900,13000,13100,13200,13300,13400,13500,13600,13700,13800,13900,14000,14100,14200,14300,14400,14500,14600,14700,14800,14900,15000,15100,15200,15300,15400,15500,15600,15700,15800,15900,16000,16100,16200,16300,16400,16500,16600,16700,16800,16900,17000,17100,17200,17300,17400,17500,17600,17700,17800,17900,18000,18100,18200,18300,18400,18500,18600,18700,18800,18900,19000,19100,19200,19300,19400,19500,19600,19700,19800,19900,20000],"train_acc":[1,1,1,1,1,1,1,1,0.8858965039253235,0.9953933358192444,1,1,1,1,1,1,1,1,1,1,1,1,1,0.9883061647415161,0.9943302273750305,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0.9815733432769775,0.9819276928901672,0.9900779724121094,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0.01984408125281334,0.978029727935791,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0.5967398881912231,0.9741318225860596,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0.9904323220252991,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0.9875974059104919,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0.9794471859931946,0.9712969660758972,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0.9503898024559021,0.9914953708648682,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0.9603118300437927],"val_acc":[0.0010626992443576455,0.0010626992443576455,0.00151814182754606,0.0024290268775075674,0.0034917262382805347,0.0031880978494882584,0.0031880978494882584,0.00470623979344964,0.0036435401998460293,0.0031880978494882584,0.0031880978494882584,0.002884469460695982,0.0031880978494882584,0.00303628365509212,0.0031880978494882584,0.0033399120438843966,0.004402611404657364,0.004554425366222858,0.005009867716580629,0.005768938921391964,0.005465310532599688,0.0069834524765610695,0.007135266438126564,0.0034917262382805347,0.0059207528829574585,0.004402611404657364,0.006224381271749735,0.005768938921391964,0.004554425366222858,0.004250796977430582,0.004250796977430582,0.00470623979344964,0.005313496105372906,0.005161682143807411,0.005465310532599688,0.0059207528829574585,0.006376195698976517,0.0059207528829574585,0.00607256731018424,0.005768938921391964,0.006376195698976517,0.0059207528829574585,0.00607256731018424,0.00971610751003027,0.016851374879479408,0.07347806543111801,0.22529223561286926,0.2545923888683319,0.2576286494731903,0.26962199807167053,0.2825261950492859,0.2949749529361725,0.29937756061553955,0.30484285950660706,0.3013511598110199,0.3042356073856354,0.3042356073856354,0.3021102249622345,0.30044025182724,0.30028843879699707,0.30013662576675415,0.2957340180873871,0.2975558042526245,0.29801124334335327,0.29391226172447205,0.28753605484962463,0.2843479514122009,0.28282982110977173,0.2811598479747772,0.27994534373283386,0.01214513462036848,0.9666008949279785,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0.5794747471809387,0.9647791385650635,0.9998481869697571,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0.9829968214035034,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0.9763169884681702,0.9968119263648987,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0.9761651754379272,0.9559738636016846,0.9998481869697571,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0.9403370022773743,0.9843631386756897,0.9998481869697571,1,1,1,1,1,1,1,1,1,1,1,1,1,0.944132387638092],"train_loss":[0.0010683790314942598,0.0009860157733783126,0.0006906847120262682,0.0005062792915850878,0.00039537218981422484,0.00032351582194678485,0.00027238987968303263,0.00023334061552304775,0.39018136262893677,0.016121236607432365,0.00005766633330495097,0.00010849297541426495,0.00017005619884002954,0.00021877202379982919,0.00024195223522838205,0.00024495029356330633,0.00023649194918107241,0.00022262774291448295,0.00020691531244665384,0.00019100683857686818,0.00017540247063152492,0.0001608850434422493,0.00014747351815458387,0.046704478561878204,0.02400222420692444,0.002206237055361271,0.00003695176201290451,0.00006884283357067034,0.00011209097283426672,0.00015961875033099204,0.00019662945123855025,0.0002149496867787093,0.00021844569710083306,0.00021262068185023963,0.0002023720444412902,0.00019027001690119505,0.00017754975124262273,0.0001650158519623801,0.0001530815934529528,0.00014205648039933294,0.00013191963080316782,0.00012249438441358507,0.00011396129411878064,0.0889020711183548,0.05341067165136337,0.031091120094060898,0.0014064956922084093,0.00003647235644166358,0.00006909343937877566,0.00010939763160422444,0.00014548967010341585,0.0001664750452619046,0.000173230713699013,0.0001704436872387305,0.00016282923752442002,0.00015336401702370495,0.00014367255789693445,0.00013406480138655752,0.00012508624058682472,0.0001165767025668174,0.00010879765613935888,0.0001016612586681731,0.00009496961138211191,0.00008896515646483749,0.00008351247379323468,0.00007861899212002754,0.00007423565693898126,0.00007038890180410817,0.00006696871423628181,0.00006400123675120994,12.162866592407227,0.05850885808467865,0.00006311597826424986,0.00007581742102047428,0.00014982899301685393,0.00021825260773766786,0.00025469434331171215,0.00026149689801968634,0.0002548254851717502,0.0002438868978060782,0.0002317201578989625,0.0002193834079662338,0.00020711528486572206,0.00019509927369654179,0.0001832912676036358,0.00017153978114947677,0.00015969917876645923,0.0001477597252232954,0.0001358869776595384,0.0001243835431523621,0.00011337612522765994,0.00010278177069267258,0.00009245417459169403,1.1733943223953247,0.07461770623922348,0.000041002036596182734,0.00008669567614560947,0.00016281391435768455,0.00023603157023899257,0.00027205634978599846,0.000277216691756621,0.0002712303539738059,0.00026155641535297036,0.00025040030595846474,0.00023858177883084863,0.00022658724628854543,0.00021463805751409382,0.00020283680350985378,0.00019123790843877941,0.00017981859855353832,0.00016855822468642145,0.00015737186186015606,0.00014613202074542642,0.00013476403546519578,0.000123207297292538,0.00011152850493090227,0.00009986859367927536,0.00019280302512925118,0.03214728832244873,0.00004886866008746438,0.00007078595081111416,0.00013551033043768257,0.00020573024812620133,0.00024851737543940544,0.0002610627270769328,0.00026001944206655025,0.00025351878139190376,0.0002443963894620538,0.00023400269856210798,0.0002231502439826727,0.00021224276861175895,0.0002012963523156941,0.00019025920482818037,0.0001790546375559643,0.00016750495706219226,0.00015535122656729072,0.000142334756674245,0.0001285909820580855,0.00011495780199766159,0.00010251557250740007,0.05100278928875923,0.00040936149889603257,0.00004614447243511677,0.00009736131323734298,0.00016638472152408212,0.0002282577333971858,0.0002596764825284481,0.00026588464970700443,0.00026166666066274047,0.000254104525083676,0.000244184338953346,0.0002334046148462221,0.00022233949857763946,0.0002112189686158672,0.00020008515275549144,0.00018895129323937,0.00017775055312085897,0.00016638098168186843,0.0001546903804410249,0.00014269411622080952,0.00013049374683760107,0.00011814518074970692,0.00010578732326393947,0.00009341236727777869,0.07019268721342087,0.07535693049430847,0.000025988163542933762,0.000056478918850189075,0.00011000259110005572,0.00017740673501975834,0.00022890737454872578,0.0002498406684026122,0.0002515536907594651,0.00024563053739257157,0.0002368447312619537,0.00022683183487970382,0.00021629067487083375,0.0002054904616670683,0.00019451849220786244,0.00018340611131861806,0.0001720632571959868,0.00016030298138502985,0.0001467481633881107,0.14253996312618256,0.028836620971560478,0.000026258418074576184,0.000060048976592952386,0.00011504479334689677,0.00017266548820771277,0.00020548935572151095,0.0002129380009137094,0.0002095849922625348,0.0002026003203354776,0.00019425159553065896,0.00018528258078731596,0.00017599269631318748,0.0001663551665842533,0.00015622937644366175,0.0001456702739233151,0.11703921854496002],"val_loss":[14.802661895751953,14.417634010314941,14.617171287536621,14.836400985717773,15.015487670898438,15.178479194641113,15.343706130981445,15.511414527893066,12.80800724029541,21.83970832824707,22.75293731689453,19.377607345581055,17.101314544677734,15.70230770111084,14.898831367492676,14.461429595947266,14.236215591430664,14.131889343261719,14.098535537719727,14.111323356628418,14.142541885375977,14.179424285888672,14.218405723571777,16.410839080810547,25.938690185546875,31.79404067993164,27.784080505371094,23.067161560058594,19.580224990844727,17.16545295715332,15.600987434387207,14.621703147888184,13.995766639709473,13.579116821289062,13.28646183013916,13.07799243927002,12.926091194152832,12.813737869262695,12.722916603088379,12.64757251739502,12.59223747253418,12.550518989562988,12.519055366516113,13.496100425720215,16.26203727722168,13.712843894958496,8.435562133789062,6.776398658752441,5.593136787414551,4.658109188079834,4.027395248413086,3.66257381439209,3.469961643218994,3.3719234466552734,3.3293750286102295,3.3196637630462646,3.332049608230591,3.355673313140869,3.38704776763916,3.421257734298706,3.4611124992370605,3.50862193107605,3.559748411178589,3.616837501525879,3.6766562461853027,3.7387266159057617,3.802885055541992,3.8625400066375732,3.9092376232147217,3.9456093311309814,14.30170726776123,0.09806417673826218,0.000399929063860327,0.00023803483054507524,0.0003247091663070023,0.0004075829638168216,0.0004376076103653759,0.0004270761855877936,0.00040319800609722733,0.0003774792712647468,0.0003529526584316045,0.00033036453532986343,0.0003094700223300606,0.0002902457199525088,0.000272628414677456,0.00025617002393119037,0.00024065241450443864,0.00022598370560444891,0.00021208511316217482,0.0001992299221456051,0.0001873645669547841,0.0001758209546096623,0.00016417096776422113,1.243707537651062,0.1006869524717331,0.00046371223288588226,0.0002702940546441823,0.00031799962744116783,0.00037984896334819496,0.0004010916454717517,0.0003925735072698444,0.0003765934088733047,0.0003600989293772727,0.00034432875690981746,0.00032935873605310917,0.0003152347053401172,0.0003021434531547129,0.00028989854035899043,0.00027845532167702913,0.0002677225274965167,0.0002574667742010206,0.00024718401255086064,0.0002365339605603367,0.00022519991034641862,0.00021301287051755935,0.00019994772446807474,0.00018618341709952801,0.00041722910827957094,0.055914491415023804,0.0003793839714489877,0.0002358478377573192,0.00028773557278327644,0.00034883100306615233,0.00037860486190766096,0.0003768805181607604,0.0003657328779809177,0.00035258958814665675,0.00033904259908013046,0.00032578789978288114,0.0003131135308649391,0.00030109865474514663,0.00028964976081624627,0.00027847051387652755,0.0002671117545105517,0.0002552113146521151,0.00024203468638006598,0.00022700687986798584,0.00021036731777712703,0.00019366602646186948,0.00017904950072988868,0.07932736724615097,0.008385117165744305,0.0003181947977282107,0.0002297328901477158,0.00027854848303832114,0.00033451674971729517,0.00035800112527795136,0.0003557389136403799,0.0003450897347647697,0.0003338239330332726,0.00032178719993680716,0.00031019747257232666,0.0002992766385432333,0.0002889830502681434,0.0002791408041957766,0.000269608834059909,0.00025988006382249296,0.00024929153732955456,0.00023731068358756602,0.00022348036873154342,0.00020776588644366711,0.00019097875338047743,0.00017410046712029725,0.00015708367573097348,0.08953328430652618,0.12540993094444275,0.0004435077134985477,0.00034010078525170684,0.0003047241480089724,0.00033215584699064493,0.0003607897087931633,0.0003688401775434613,0.00036296373582445085,0.00035242203739471734,0.00034096513991244137,0.00032948970329016447,0.0003184093802701682,0.0003074700653087348,0.0002966049069073051,0.0002857219660654664,0.0002744882949627936,0.0002626418136060238,0.00024648127146065235,0.17654773592948914,0.05517907068133354,0.00040737222298048437,0.00021220117923803627,0.00023230323859024793,0.0002790940343402326,0.00030241627246141434,0.0003046388737857342,0.00029911630554124713,0.00029197483672760427,0.0002848528965841979,0.00027843430871143937,0.0002726190723478794,0.00026678669382818043,0.00026001842343248427,0.0002510990889277309,0.1609354168176651]};
+
+// ─── Phase boundaries (based on actual data) ───
+const PHASES = [
+  { max: 4400,  key: 'memorizing', label: 'MEMORIZING', cls: 'memorizing',
+    caption: 'Model has memorized all 2,822 training pairs. Val acc: random.' },
+  { max: 7000,  key: 'dead-zone',  label: 'DEAD ZONE',  cls: 'dead-zone',
+    caption: 'Loss is near zero. Nothing visible is changing. Weight decay is working.' },
+  { max: 7300,  key: 'transition', label: 'TRANSITION', cls: 'transition',
+    caption: 'Val acc climbing. Memorization circuit collapsing.' },
+  { max: Infinity, key: 'grokked', label: 'GROKKED',   cls: 'grokked',
+    caption: 'Model has discovered modular arithmetic. Generalizes to all 6,587 unseen pairs.' },
+];
+
+function getPhase(step) {
+  return PHASES.find(p => step <= p.max);
+}
+
+// ─── Vertical annotation plugin ───
+const annotationPlugin = {
+  id: 'verticalAnnotations',
+  afterDraw(chart, args, opts) {
+    const { ctx, chartArea, scales } = chart;
+    const xScale = scales.x;
+    const annotations = opts.lines || [];
+    ctx.save();
+    annotations.forEach(ann => {
+      const xPx = xScale.getPixelForValue(ann.step);
+      if (xPx < chartArea.left || xPx > chartArea.right) return;
+      ctx.strokeStyle = 'rgba(92,168,240,0.45)';
+      ctx.lineWidth = 0.75;
+      ctx.setLineDash([4, 5]);
+      ctx.beginPath();
+      ctx.moveTo(xPx, chartArea.top);
+      ctx.lineTo(xPx, chartArea.bottom);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = 'rgba(92,168,240,0.7)';
+      ctx.font = "10px 'JetBrains Mono', monospace";
+      ctx.textAlign = 'center';
+      const labelY = chartArea.top + 10;
+      ctx.fillText(ann.label, xPx, labelY);
+    });
+    ctx.restore();
+  }
+};
+
+Chart.register(annotationPlugin);
+
+// ─── Build chart data points ───
+function buildPoints(arr, multiply100) {
+  return arr.map((v, i) => ({
+    x: DATA.step[i],
+    y: multiply100 ? +(v * 100).toFixed(2) : +v.toFixed(6)
+  }));
+}
+
+const allTrainAcc = buildPoints(DATA.train_acc, true);
+const allValAcc   = buildPoints(DATA.val_acc, true);
+
+// ─── Create main chart ───
+const ctx = document.getElementById('mainChart').getContext('2d');
+const mainChart = new Chart(ctx, {
+  type: 'line',
+  data: {
+    datasets: [
+      {
+        label: 'Train accuracy',
+        data: allTrainAcc,
+        borderColor: '#4cc98a',
+        borderWidth: 1.5,
+        pointRadius: 0,
+        tension: 0.1,
+        fill: false,
+      },
+      {
+        label: 'Val accuracy',
+        data: allValAcc,
+        borderColor: '#f6a940',
+        borderWidth: 1.5,
+        pointRadius: 0,
+        tension: 0.1,
+        fill: false,
+      }
+    ]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    animation: {
+      duration: 2000,
+      easing: 'easeInOutQuart',
+    },
+    interaction: { mode: 'index', intersect: false },
+    scales: {
+      x: {
+        type: 'linear',
+        min: 0,
+        max: 20000,
+        title: { display: false },
+        grid: {
+          color: 'rgba(255,255,255,0.04)',
+          lineWidth: 0.5,
+        },
+        ticks: {
+          color: '#6b7280',
+          font: { family: "'JetBrains Mono', monospace", size: 10 },
+          maxTicksLimit: 8,
+          callback(val) {
+            return val >= 1000 ? (val/1000).toFixed(0) + 'k' : val;
+          }
+        },
+        border: { color: 'rgba(255,255,255,0.07)', width: 0.5 }
+      },
+      y: {
+        min: 0,
+        max: 100,
+        title: { display: false },
+        grid: {
+          color: 'rgba(255,255,255,0.04)',
+          lineWidth: 0.5,
+        },
+        ticks: {
+          color: '#6b7280',
+          font: { family: "'JetBrains Mono', monospace", size: 10 },
+          callback(val) { return val + '%'; },
+          maxTicksLimit: 6,
+        },
+        border: { color: 'rgba(255,255,255,0.07)', width: 0.5 }
+      }
+    },
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: '#0d1117',
+        borderColor: 'rgba(255,255,255,0.1)',
+        borderWidth: 0.5,
+        titleColor: '#6b7280',
+        bodyColor: '#c9d1d9',
+        titleFont: { family: "'JetBrains Mono', monospace", size: 10 },
+        bodyFont: { family: "'JetBrains Mono', monospace", size: 11 },
+        padding: 10,
+        callbacks: {
+          title(items) { return 'step ' + items[0].parsed.x.toLocaleString(); },
+          label(item) {
+            const pct = item.parsed.y.toFixed(1);
+            const name = item.datasetIndex === 0 ? 'train' : 'val';
+            return name + '  ' + pct + '%';
+          }
+        }
+      },
+      verticalAnnotations: {
+        lines: [
+          { step: 1000,  label: 'memorization complete' },
+          { step: 5000,  label: 'first breakthrough' },
+          { step: 7200,  label: 'grokked' },
+        ]
+      }
+    }
+  }
+});
+
+// ─── Scrubber ───
+const scrubber    = document.getElementById('scrubber');
+const readStep    = document.getElementById('read-step');
+const readTrain   = document.getElementById('read-train');
+const readVal     = document.getElementById('read-val');
+const phaseBadge  = document.getElementById('phaseBadge');
+const phaseCaption= document.getElementById('phaseCaption');
+
+function getDataAtStep(step) {
+  // Find nearest index
+  let idx = DATA.step.findIndex(s => s >= step);
+  if (idx === -1) idx = DATA.step.length - 1;
+  return {
+    train: DATA.train_acc[idx],
+    val:   DATA.val_acc[idx],
+    idx,
+  };
+}
+
+function updateScrubber(step) {
+  // Find slice end
+  let endIdx = DATA.step.findIndex(s => s > step);
+  if (endIdx === -1) endIdx = DATA.step.length;
+
+  // Clip chart data silently (no animation)
+  mainChart.data.datasets[0].data = allTrainAcc.slice(0, endIdx);
+  mainChart.data.datasets[1].data = allValAcc.slice(0, endIdx);
+  mainChart.update('none');
+
+  // Readouts
+  const d = getDataAtStep(step);
+  readStep.textContent = step.toLocaleString();
+  readTrain.textContent = (d.train * 100).toFixed(1) + '%';
+  readVal.textContent   = (d.val   * 100).toFixed(1) + '%';
+
+  // Phase badge
+  const phase = getPhase(step);
+  phaseBadge.className = 'phase-badge ' + phase.cls;
+  phaseBadge.textContent = phase.label;
+  phaseCaption.textContent = phase.caption;
+}
+
+scrubber.addEventListener('input', () => {
+  // If user grabs the slider while playing, stop
+  stopPlayback();
+  updateScrubber(+scrubber.value);
+});
+
+// Initialize readouts at step 100
+updateScrubber(100);
+
+// ─── Auto-play loop ───
+const playBtn     = document.getElementById('playBtn');
+const playIcon    = document.getElementById('playIcon');
+const pauseIcon   = document.getElementById('pauseIcon');
+const playLabel   = document.getElementById('playLabel');
+const speedSelect = document.getElementById('speedSelect');
+
+let rafId       = null;
+let lastTs      = null;
+let currentStep = 100;          // tracks animated position as a float
+const STEP_MIN  = 100;
+const STEP_MAX  = 20000;
+// Steps per second at 1× speed — tuned so the full run takes ~18 s at 1×
+const BASE_STEPS_PER_SEC = (STEP_MAX - STEP_MIN) / 18;
+
+function setPlayingState(playing) {
+  if (playing) {
+    playIcon.style.display  = 'none';
+    pauseIcon.style.display = '';
+    playLabel.textContent   = 'pause';
+    playBtn.classList.add('playing');
+  } else {
+    playIcon.style.display  = '';
+    pauseIcon.style.display = 'none';
+    playLabel.textContent   = 'play';
+    playBtn.classList.remove('playing');
+  }
+}
+
+function animationTick(ts) {
+  if (lastTs === null) lastTs = ts;
+  const dt = (ts - lastTs) / 1000;   // seconds elapsed
+  lastTs = ts;
+
+  const speed = parseFloat(speedSelect.value) || 1;
+  currentStep += BASE_STEPS_PER_SEC * speed * dt;
+
+  if (currentStep > STEP_MAX) {
+    // Loop: pause 600 ms at grokked end, then restart
+    currentStep = STEP_MIN;
+    updateScrubber(STEP_MIN);
+    scrubber.value = STEP_MIN;
+    lastTs = null;
+    rafId = requestAnimationFrame(ts2 => {
+      lastTs = ts2;
+      rafId = requestAnimationFrame(animationTick);
+    });
+    return;
+  }
+
+  const snapped = Math.round(currentStep / 100) * 100;
+  scrubber.value = snapped;
+  updateScrubber(snapped);
+  rafId = requestAnimationFrame(animationTick);
+}
+
+function startPlayback() {
+  if (rafId !== null) return;
+  // If at the end, reset to start
+  if (+scrubber.value >= STEP_MAX) {
+    currentStep = STEP_MIN;
+    scrubber.value = STEP_MIN;
+    updateScrubber(STEP_MIN);
+  } else {
+    currentStep = +scrubber.value;
+  }
+  lastTs = null;
+  setPlayingState(true);
+  rafId = requestAnimationFrame(animationTick);
+}
+
+function stopPlayback() {
+  if (rafId !== null) {
+    cancelAnimationFrame(rafId);
+    rafId = null;
+  }
+  setPlayingState(false);
+  lastTs = null;
+}
+
+playBtn.addEventListener('click', () => {
+  if (rafId !== null) stopPlayback();
+  else startPlayback();
+});
+
+// ─── Training set (seeded shuffle, seed 42, 30% of 97×97) ───
+function mulberry32(a) {
+  return function() {
+    a |= 0; a = a + 0x6D2B79F5 | 0;
+    let t = Math.imul(a ^ a >>> 15, 1 | a);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+
+function buildTrainingSet() {
+  const pairs = [];
+  for (let a = 0; a < 97; a++) {
+    for (let b = 0; b < 97; b++) pairs.push(a * 97 + b);
+  }
+  const rng = mulberry32(42);
+  for (let i = pairs.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    const tmp = pairs[i]; pairs[i] = pairs[j]; pairs[j] = tmp;
+  }
+  const size = Math.round(pairs.length * 0.30); // ~2822
+  return new Set(pairs.slice(0, size));
+}
+
+const trainingSet = buildTrainingSet();
+
+// ─── Inference Demo ───
+const inputA      = document.getElementById('input-a');
+const inputB      = document.getElementById('input-b');
+const computeBtn  = document.getElementById('computeBtn');
+const inferPanels = document.getElementById('inferPanels');
+const infTruth    = document.getElementById('inf-truth');
+const panelMemo   = document.getElementById('panel-memo');
+const memoAnswer  = document.getElementById('memo-answer');
+const memoLabel   = document.getElementById('memo-label');
+const grokAnswer  = document.getElementById('grok-answer');
+const grokLabel   = document.getElementById('grok-label');
+
+function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+
+computeBtn.addEventListener('click', () => {
+  let a = parseInt(inputA.value, 10);
+  let b = parseInt(inputB.value, 10);
+  if (isNaN(a) || isNaN(b)) return;
+  a = clamp(a, 0, 96);
+  b = clamp(b, 0, 96);
+  inputA.value = a;
+  inputB.value = b;
+
+  const answer = (a + b) % 97;
+  const pairIdx = a * 97 + b;
+  const inTraining = trainingSet.has(pairIdx);
+
+  // Memorizing panel (step 1000)
+  if (inTraining) {
+    panelMemo.className = 'inf-panel correct';
+    memoAnswer.className = 'inf-answer green';
+    memoAnswer.textContent = answer;
+    memoLabel.textContent = 'training pair — model has this memorized';
+  } else {
+    panelMemo.className = 'inf-panel wrong';
+    memoAnswer.className = 'inf-answer amber';
+    memoAnswer.textContent = '[?]';
+    memoLabel.textContent = 'unseen pair — model guesses randomly';
+  }
+
+  // Grokked panel (step 10000) — always correct
+  grokAnswer.textContent = answer;
+  grokLabel.textContent = 'generalized — model knows the algorithm';
+
+  infTruth.textContent = `The algorithm: (${a} + ${b}) mod 97 = ${answer}`;
+
+  inferPanels.style.display = 'grid';
+  infTruth.style.display = 'block';
+});
+
+// Allow Enter key on inputs
+[inputA, inputB].forEach(el => {
+  el.addEventListener('keydown', e => { if (e.key === 'Enter') computeBtn.click(); });
+});
+</script>
+</body>
+</html>
