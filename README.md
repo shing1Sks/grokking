@@ -1,6 +1,7 @@
 # Grokking Lab
 
 @Live at https://shing1sks.github.io/grokking/
+
 @Notebook at https://www.kaggle.com/code/shingdev/grokking-simulation
 
 An interactive visualization of the **grokking phenomenon** — the counterintuitive behavior where a neural network first memorizes its training data, then, thousands of steps later, suddenly discovers a generalizing algorithm.
